@@ -1,0 +1,45 @@
+info:
+  name: 04 Clone Payment Method Empty Array
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/clone_payment_method"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "destination_account_id": "{{ACCOUNT_ID}}",
+      "payment_methods": [],
+      "request_id": "e2e-clone-empty"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return error for empty payment_methods", function() {
+          expect(res.getStatus()).to.be.oneOf([400, 403, 404, 412]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Validation: payment_methods must be non-empty array.
+  Should return 400 for empty array.

@@ -1,0 +1,47 @@
+info:
+  name: 04 Create Refund Missing Payment ID
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/refund/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "type": "full"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return error for missing payment ID", function() {
+          expect(res.getStatus()).to.be.oneOf([400, 403, 412]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Validation: justifi_payment_id is required.
+  Should return 400 when payment ID is missing.

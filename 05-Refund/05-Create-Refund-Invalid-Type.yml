@@ -1,0 +1,48 @@
+info:
+  name: 05 Create Refund Invalid Type
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/refund/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "type": "invalid_type",
+      "justifi_payment_id": "{{PAYMENT_ID}}"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return error for invalid type", function() {
+          expect(res.getStatus()).to.be.oneOf([400, 403, 412]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Validation: type must be 'full' or 'partial'.
+  Should return 400 for invalid type value.

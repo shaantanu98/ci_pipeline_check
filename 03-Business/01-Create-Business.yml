@@ -1,0 +1,63 @@
+info:
+  name: 01 Create Business
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/business"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "business_name": "WILL_BE_SET_BY_SCRIPT"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const name = "E2E_" + Math.random().toString(36).substring(2, 10) + "_" + Date.now();
+        console.log("Creating business:", name);
+        req.setBody({ business_name: name });
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (res.getStatus() === 200 && body.data) {
+        bru.setEnvVar("BUSINESS_UUID", body.data.uuid || "");
+        console.log("Business created:", body.data.uuid);
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 412]);
+        });
+        test("should have data", function() {
+          if (res.getStatus() === 200) expect(res.getBody().data).to.be.an('object');
+        });
+        test("should have uuid", function() {
+          if (res.getStatus() === 200) expect(res.getBody().data.uuid).to.be.a('string');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Create a new business (JustiFi business entity).
+  Requires: business_name (non-empty)
+  Optional: office_id, meta
+  Saves BUSINESS_UUID for subsequent tests.

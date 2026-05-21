@@ -1,0 +1,43 @@
+info:
+  name: 02 Link Sub Account Missing Fields
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/link_sub_account_office"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "to_office_id": "{{OFFICE_ID}}"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return error for missing account_id", function() {
+          expect(res.getStatus()).to.be.oneOf([400, 403, 412]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Validation: to_office_id and account_id are required.
+  Should return 400 when fields are missing.

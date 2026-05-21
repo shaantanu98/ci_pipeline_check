@@ -1,0 +1,47 @@
+info:
+  name: 08 Update Sub Account Status Archive
+  type: http
+  seq: 8
+
+http:
+  method: PUT
+  url: "{{BASE_URL}}/update_sub_account_status/{{SUB_UUID}}"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "status": "archived",
+      "note": "Archived by E2E test"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+        test("should have data", function() {
+          expect(res.getBody().data).to.be.an('object');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Archive a sub-account by setting status to "archived".
+  Only "archived" is accepted as a valid status value.

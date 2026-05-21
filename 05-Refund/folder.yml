@@ -1,0 +1,7 @@
+info:
+  name: 05-Refund
+  seq: 5
+
+docs: |-
+  # Refund Endpoint
+  - POST /refund/{uuid} - Create refund (full or partial)

@@ -1,0 +1,59 @@
+info:
+  name: 15 Refund Zero Amount
+  type: http
+  seq: 15
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/refund/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "type": "partial",
+        "amount": 0,
+        "justifi_payment_id": "{{PAYMENT_ID}}"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        console.log("=== ZERO AMOUNT REFUND ===");
+        console.log("Status:", res.getStatus());
+        console.log("Response:", JSON.stringify(res.getBody()));
+    - type: tests
+      code: |-
+        test("should not return 200 for zero amount refund", function() {
+          // Zod schema has no minimum on amount, so 0 passes local validation.
+          // The request is forwarded to JustiFi which rejects it, returning 400 or 500.
+          // API may also return 412 if payment lookup fails.
+          const status = res.getStatus();
+          expect(status).to.not.equal(200);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Attempt partial refund with amount 0.
+  API has no local zero-amount guard (Zod allows it).
+  JustiFi processor rejects zero refunds, so the API returns an error.

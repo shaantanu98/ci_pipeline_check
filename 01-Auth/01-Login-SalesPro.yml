@@ -1,0 +1,88 @@
+info:
+  name: 01 Login SalesPro
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{PARSE_BASE_URL}}/leap/functions/loginUser"
+  headers:
+    - name: Content-Type
+      value: text/plain
+  body:
+    type: json
+    data: |-
+      {
+        "username": "{{LOGIN_USERNAME}}",
+        "password": "{{LOGIN_PASSWORD}}",
+        "source": "website",
+        "_ApplicationId": "{{APPLICATION_ID}}",
+        "_ClientVersion": "js5.3.0",
+        "_InstallationId": "40be8738-d8a4-4b56-a1e4-47cdfd78a3cc"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        const status = res.getStatus();
+        console.log("Login status:", status);
+        if (status === 200 && body.result) {
+          // Parse Cloud Function wraps response: body.result contains the function return value
+          // loginUser returns { type, message, result: Session }
+          const loginResult = body.result;
+          const session = loginResult.result || loginResult;
+          const token = session.sessionToken;
+          if (token) {
+            bru.setEnvVar("AUTHTOKEN", "Bearer " + token);
+            bru.setEnvVar("SESSION_TOKEN", token);
+            console.log("AUTHTOKEN saved: Bearer " + token.substring(0, 10) + "...");
+          }
+          // Extract company from session (expanded Parse object with objectId)
+          const company = session.company || {};
+          const companyId = company.objectId || company.id || "";
+          if (companyId) {
+            bru.setEnvVar("COMPANY_ID", companyId);
+            console.log("COMPANY_ID:", companyId);
+          }
+          // Offices are on company.offices (array of Parse Pointers), NOT on session root
+          const offices = company.offices || session.offices || [];
+          if (offices.length > 0) {
+            const officeId = offices[0].objectId || offices[0].id || "";
+            if (officeId) {
+              bru.setEnvVar("OFFICE_ID", officeId);
+              console.log("OFFICE_ID:", officeId);
+            }
+          }
+          console.log("Company:", companyId, "| Office:", offices.length > 0 ? offices[0].objectId : "none");
+        } else {
+          console.log("Login failed:", JSON.stringify(body));
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+        test("should have session token", function() {
+          const body = res.getBody();
+          const session = body.result?.result || body.result;
+          expect(session.sessionToken).to.be.a('string');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Login to SalesPro (Parse Server) to get session token.
+  This MUST run first before any API calls.
+  
+  Sets:
+  - AUTHTOKEN: "Bearer " + sessionToken (for API Authorization header)
+  - SESSION_TOKEN: raw sessionToken (for Parse Server calls)
+  - COMPANY_ID, OFFICE_ID from the logged-in user

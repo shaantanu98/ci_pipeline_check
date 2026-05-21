@@ -1,0 +1,71 @@
+info:
+  name: 07 Clone Async Response Fields
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/clone_payment_method"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "destination_account_id": "{{ACCOUNT_ID}}",
+      "payment_methods": [
+        {
+          "token": "{{PAYMENT_METHOD_TOKEN}}",
+          "id": "pm_async_fields"
+        }
+      ],
+      "request_id": "async-fields-TIMESTAMP",
+      "async": true
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const uniqueId = "async-fields-" + Date.now();
+        req.setBody(JSON.stringify({
+          destination_account_id: bru.getEnvVar("ACCOUNT_ID"),
+          payment_methods: [
+            {
+              token: bru.getEnvVar("PAYMENT_METHOD_TOKEN"),
+              id: "pm_async_fields"
+            }
+          ],
+          request_id: uniqueId,
+          async: true
+        }));
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 404, 412]);
+        });
+        test("should have async true in response if 200", function() {
+          if (res.getStatus() === 200) {
+            expect(res.getBody().async).to.equal(true);
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Clone payment method asynchronously and validate response fields.
+  Generates unique request_id with Date.now() before request.
+  Checks async: true is present in response on success.

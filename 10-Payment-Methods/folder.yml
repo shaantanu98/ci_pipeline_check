@@ -1,0 +1,7 @@
+info:
+  name: 10-Payment-Methods
+  seq: 10
+
+docs: |-
+  # Payment Method Endpoints
+  - POST /clone_payment_method - Clone payment methods (sync/async)

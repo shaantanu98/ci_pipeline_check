@@ -1,0 +1,38 @@
+info:
+  name: 01 Get Balance Summary
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{BASE_URL}}/payout_balance_summary/{{SUB_UUID}}"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+        test("should have data", function() {
+          expect(res.getBody().data).to.be.an('object');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Get payout balance summary for a sub-account.
+  Returns balance_amount and payout_amount.

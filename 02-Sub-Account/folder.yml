@@ -1,0 +1,10 @@
+info:
+  name: 02-Sub-Account
+  seq: 2
+
+docs: |-
+  # Sub-Account Endpoints
+  - POST /sub_account - Create
+  - GET /sub_account/{uuid} - Get by UUID/company_id
+  - PUT /update_sub_account_status/{uuid} - Archive
+  - POST /sub_account_webhook/{uuid} - Dev-only webhook

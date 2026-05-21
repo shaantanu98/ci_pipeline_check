@@ -1,0 +1,119 @@
+name: staging
+variables:
+  # === Parse Server / SalesPro (Staging) ===
+  - name: PARSE_BASE_URL
+    value: "https://api.stage.leaptodigital.com"
+  - name: APPLICATION_ID
+    value: "<SET_VIA_GITHUB_SECRET>"
+  - name: PARSE_MASTER_KEY
+    value: "<SET_VIA_GITHUB_SECRET>"
+  - name: SERVER_URL
+    value: "https://api.stage.leaptodigital.com/leap"
+
+  # === LeapPay Serverless API (Staging) ===
+  - name: BASE_URL
+    value: "https://leappay-api-staging.jobprog.net/api/v1"
+
+  # === Login Credentials ===
+  - name: LOGIN_USERNAME
+    value: "<SET_VIA_GITHUB_SECRET>"
+  - name: LOGIN_PASSWORD
+    value: "<SET_VIA_GITHUB_SECRET>"
+  - name: DATASERVICE
+    value: salespro
+
+  # === JustiFi Credentials ===
+  - name: JUSTIFI_CLIENT_ID
+    value: "<SET_VIA_GITHUB_SECRET>"
+  - name: JUSTIFI_CLIENT_SECRET
+    value: "<SET_VIA_GITHUB_SECRET>"
+  - name: JUSTIFI_SIGNATURE_KEY
+    value: "<SET_VIA_GITHUB_SECRET>"
+  - name: JUSTIFI_OAUTH_URL
+    value: "https://api.justifi.ai/oauth/token"
+  - name: JUSTIFI_BASE_URL
+    value: "https://api.justifi.ai/v1/"
+
+  # === JustiFi - Leap Credentials ===
+  - name: LEAP_JUSTIFI_CLIENT_ID
+    value: "<SET_VIA_GITHUB_SECRET>"
+  - name: LEAP_JUSTIFI_CLIENT_SECRET
+    value: "<SET_VIA_GITHUB_SECRET>"
+  - name: LEAP_JUSTIFI_SIGNATURE_KEY
+    value: "<SET_VIA_GITHUB_SECRET>"
+
+  # === Auth URLs ===
+  - name: AUTH_SALESPRO
+    value: "https://api.stage.leaptodigital.com/leap/functions/LeapPayAccountDetails"
+  - name: AUTH_LEAP
+    value: "https://stage.jobprog.net/api/v1/user/info"
+
+  # === Encryption ===
+  - name: ENCRYPTION_KEY
+    value: "<SET_VIA_GITHUB_SECRET>"
+
+  # === Runtime Tokens (populated by test scripts) ===
+  - name: AUTHTOKEN
+    value: ""
+  - name: SESSION_TOKEN
+    value: ""
+  - name: JUSTIFI_TOKEN
+    value: ""
+  - name: V2_AUTHTOKEN
+    value: ""
+
+  # === Pre-configured Test Data (Staging) ===
+  - name: V1_SUB_UUID
+    value: "<SET_VIA_GITHUB_SECRET>"
+  - name: V1_ACCOUNT_ID
+    value: "<SET_VIA_GITHUB_SECRET>"
+  - name: V2_USERNAME
+    value: "<SET_VIA_GITHUB_SECRET>"
+  - name: V2_PASSWORD
+    value: "<SET_VIA_GITHUB_SECRET>"
+  - name: V2_COMPANY_ID
+    value: "<SET_VIA_GITHUB_SECRET>"
+  - name: V2_OFFICE_ID
+    value: "<SET_VIA_GITHUB_SECRET>"
+  - name: V2_SUB_UUID
+    value: "<SET_VIA_GITHUB_SECRET>"
+  - name: V2_ACCOUNT_ID
+    value: "<SET_VIA_GITHUB_SECRET>"
+  - name: V2_RATE_ID
+    value: "5"
+
+  # === Dynamic Variables (populated during test runs) ===
+  - name: SUB_UUID
+    value: ""
+  - name: ACCOUNT_ID
+    value: ""
+  - name: COMPANY_ID
+    value: ""
+  - name: OFFICE_ID
+    value: ""
+  - name: BUSINESS_UUID
+    value: ""
+  - name: PAYMENT_ID
+    value: ""
+  - name: PAYMENT_TOKEN
+    value: ""
+  - name: PAYMENT_METHOD_TOKEN
+    value: ""
+  - name: PAYOUT_ID
+    value: ""
+  - name: REFUND_ID
+    value: ""
+  - name: CLONE_REQUEST_ID
+    value: ""
+  - name: WEB_COMPONENT_TOKEN
+    value: ""
+  - name: INITIAL_BALANCE
+    value: ""
+  - name: POST_PAYMENT_BALANCE
+    value: ""
+  - name: REFUND_PAYMENT_ID
+    value: ""
+  - name: PARTIAL_REFUND_PAYMENT_ID
+    value: ""
+  - name: VOID_PAYMENT_ID
+    value: ""

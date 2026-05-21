@@ -1,0 +1,44 @@
+info:
+  name: 04 Unlink Sub Account From Office
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/unlink_sub_account_office"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "office_id": "{{OFFICE_ID}}"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 200 or error if last office", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 400, 412, 500]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Unlink sub-account from an office.
+  Cannot unlink if it's the only office linked.
+  Sends SNS notification on success.

@@ -1,0 +1,7 @@
+info:
+  name: 11-Web-Component
+  seq: 11
+
+docs: |-
+  # Web Component Endpoints
+  - POST /web_component_token - Get web component token

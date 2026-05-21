@@ -1,0 +1,51 @@
+info:
+  name: 14 Create Sub Account With Meta
+  type: http
+  seq: 14
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/sub_account"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "account_name": "E2E Meta Test",
+        "meta": {
+          "source": "e2e-test",
+          "userId": "test-user-123",
+          "custom_field": true
+        }
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 200 or 412 (already exists)", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 412]);
+        });
+        test("should accept meta field without error", function() {
+          expect(res.getStatus()).to.not.equal(400);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Create sub-account with optional meta field.
+  Zod schema accepts meta: z.any().optional().

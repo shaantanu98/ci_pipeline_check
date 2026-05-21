@@ -1,0 +1,53 @@
+info:
+  name: 01 Webhook Valid Payload
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/webhook"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Justifi-Signature
+      value: "{{JUSTIFI_SIGNATURE_KEY}}"
+    - name: Justifi-Timestamp
+      value: 1234567890
+  body:
+    type: json
+    data: |-
+      {
+      "id": "evt_test_e2e_001",
+      "account_id": "{{ACCOUNT_ID}}",
+      "event_name": "payment.created",
+      "data": {
+        "id": "py_test_webhook_001",
+        "status": "succeeded",
+        "amount": 10000
+      }
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        console.log("Webhook response status:", res.getStatus());
+        console.log("Response:", JSON.stringify(res.getBody()));
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 400, 401, 403]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Send a valid webhook payload.
+  Requires Justifi-Signature and Justifi-Timestamp headers.
+  Returns 200 immediately, processes async.

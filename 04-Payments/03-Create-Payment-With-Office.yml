@@ -1,0 +1,56 @@
+info:
+  name: 03 Create Payment With Office
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/payment/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "amount": 5000,
+      "payment_token": "{{PAYMENT_TOKEN}}",
+      "office_id": "{{OFFICE_ID}}",
+      "meta": {
+        "email": "e2e-office@leappay.com",
+        "job_id": 3
+      }
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+        test("should have payment_id", function() {
+          expect(res.getBody().data.payment_id).to.be.a('string');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Create payment with office_id specified.
+  Tests office-level payment tracking.

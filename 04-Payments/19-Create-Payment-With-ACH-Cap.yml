@@ -1,0 +1,104 @@
+info:
+  name: 19 Create Payment With ACH Cap
+  type: http
+  seq: 19
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/payment/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+    - name: x-card-repricing
+      value: "true"
+    - name: x-leappay-ach-cap
+      value: "true"
+  body:
+    type: json
+    data: |-
+      {
+      "amount": 1500000,
+      "payment_token": "WILL_BE_SET_BY_SCRIPT",
+      "meta": {
+        "email": "e2e-ach-cap@leappay.com",
+        "job_id": 19
+      }
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const axios = require("axios");
+        const JUSTIFI_TOKEN = "Bearer " + bru.getEnvVar("JUSTIFI_TOKEN");
+        const ACCT = bru.getEnvVar("ACCOUNT_ID");
+        try {
+        const resp = await axios({
+          method: "POST",
+          url: "https://api.justifi.ai/v1/payment_methods",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": JUSTIFI_TOKEN,
+            "Idempotency-Key": "e2e-ach-cap-" + Date.now(),
+            "Sub-Account": ACCT
+          },
+          data: {
+            payment_method: {
+              bank_account: {
+                account_owner_name: "ACH Cap Test",
+                routing_number: "110000000",
+                account_number: "000123456789",
+                account_type: "checking",
+                account_owner_type: "individual",
+                country: "US",
+                currency: "usd"
+        }
+            }
+          }
+        });
+        const token = resp.data?.data?.bank_account?.token;
+        req.setBody({
+          amount: 1500000,
+          payment_token: token,
+          meta: { email: "e2e-ach-cap@leappay.com", job_id: 19 }
+        });
+        } catch (e) {
+        console.log("Error:", e.message);
+        }
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (res.getStatus() === 200 && body.data) {
+        const fee = body.data.fee_amount;
+        const capped = fee <= 12500 ? "CAPPED" : "NOT CAPPED";
+        console.log("ACH fee:", fee, "cents |", capped);
+        console.log("Expected: <= 12500 cents ($125 cap)");
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Create ACH payment with x-leappay-ach-cap header.
+  Tests ACH fee capping at $125 (12500 cents) for large amounts.
+  Amount: $15,000 (1500000 cents)

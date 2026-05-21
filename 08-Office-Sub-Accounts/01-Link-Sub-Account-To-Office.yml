@@ -1,0 +1,49 @@
+info:
+  name: 01 Link Sub Account To Office
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/link_sub_account_office"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "to_office_id": "{{OFFICE_ID}}",
+      "account_id": "{{ACCOUNT_ID}}"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 412]);
+        });
+        test("should have data", function() {
+          if (res.getStatus() === 200) expect(res.getBody().data).to.be.an('object');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Link a sub-account to an office.
+  Requires: to_office_id, account_id
+  Optional: from_office_id (for transfer)
+  Sends SNS notification on success.

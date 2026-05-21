@@ -1,0 +1,46 @@
+info:
+  name: 16 Payment No Auth Header
+  type: http
+  seq: 16
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/payment/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "amount": 10000,
+        "payment_token": "pm_test_no_auth"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should reject unauthenticated payment", function() {
+          expect(res.getStatus()).to.be.oneOf([400, 401, 403]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Attempt payment without Authorization header.
+  Should return 401/403 - unauthenticated.

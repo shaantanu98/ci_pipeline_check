@@ -1,0 +1,57 @@
+info:
+  name: 02 Refund Exceeds Refundable
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/refund/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "type": "partial",
+        "amount": 15000,
+        "justifi_payment_id": "{{PARTIAL_REFUND_PAYMENT_ID}}",
+        "reason": "Exceeds refundable - should fail"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        console.log("=== REFUND EXCEEDS REFUNDABLE ===");
+        console.log("Status:", res.getStatus());
+        console.log("Tried to refund: $150 on payment with $125 refundable");
+        console.log("Response:", JSON.stringify(res.getBody()));
+    - type: tests
+      code: |-
+        test("should reject refund exceeding refundable amount", function() {
+          expect(res.getStatus()).to.be.oneOf([400, 412, 422]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Attempt partial refund exceeding the remaining refundable amount.
+  Uses PARTIAL_REFUND_PAYMENT_ID which had $200 with $75 already refunded.
+  Tries to refund $150 when only $125 is refundable.

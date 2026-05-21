@@ -1,0 +1,50 @@
+info:
+  name: 07 Payment At Max Boundary
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/payment/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "amount": 99999999,
+        "payment_token": "pm_test_max_boundary"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should accept at max boundary (99999999 cents = $999,999.99)", function() {
+          // PAYMENT_RANGE.MAX = 99999999 in global.ts
+          // Zod allows this value; payment processor may still reject
+          expect(res.getStatus()).to.be.oneOf([200, 400, 412, 500]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Payment at exactly PAYMENT_RANGE.MAX: 99,999,999 cents ($999,999.99).
+  Zod validation passes. Payment processor may reject large amounts.

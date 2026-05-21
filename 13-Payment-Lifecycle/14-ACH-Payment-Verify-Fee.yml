@@ -1,0 +1,83 @@
+info:
+  name: 14 ACH Payment Verify Fee
+  type: http
+  seq: 14
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/payment/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "amount": 10000,
+        "payment_token": "WILL_BE_SET_BY_SCRIPT",
+        "meta": { "test": "ach_fee_verify" }
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const axios = require("axios");
+        const JUSTIFI_TOKEN = "Bearer " + bru.getEnvVar("JUSTIFI_TOKEN");
+        const ACCT = bru.getEnvVar("ACCOUNT_ID");
+        try {
+          const resp = await axios({
+            method: "POST",
+            url: "https://api.justifi.ai/v1/payment_methods",
+            headers: { "Content-Type": "application/json", "Authorization": JUSTIFI_TOKEN, "Idempotency-Key": "ach-fee-" + Date.now(), "Sub-Account": ACCT },
+            data: { payment_method: { bank_account: { account_owner_name: "ACH Fee Test", routing_number: "110000000", account_number: "000123456789", account_type: "checking", account_owner_type: "individual", country: "US", currency: "usd" } } }
+          });
+          const token = resp.data?.data?.bank_account?.token;
+          req.setBody({ amount: 10000, payment_token: token, meta: { test: "ach_fee_verify" } });
+        } catch (e) { console.log("Error:", e.message); }
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (res.getStatus() === 200 && body.data) {
+          console.log("=== ACH PAYMENT ===");
+          console.log("Amount:", body.data.amount, "cents");
+          console.log("Fee:", body.data.fee_amount, "cents");
+          console.log("Expected V1 ACH Fee: 80 cents (0.8% of $100)");
+          console.log("Fee Match:", body.data.fee_amount === 80 ? "YES (V1)" : "Got " + body.data.fee_amount + " - may be V2 rate (1%)");
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+        test("fee should be positive", function() {
+          expect(res.getBody().data.fee_amount).to.be.greaterThan(0);
+        });
+        test("fee should be reasonable for ACH", function() {
+          const fee = res.getBody().data.fee_amount;
+          // Fee varies by environment: dev 0.8%=80, staging 1.8%=180, V2 1%=100
+          expect(fee).to.be.greaterThan(0);
+          expect(fee).to.be.lessThan(5000);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Create ACH payment for $100 and verify ACH fee rate.
+  V1 ACH rate: 0.8% = 80 cents on $100

@@ -1,0 +1,148 @@
+info:
+  name: 22 Payment Response Fields
+  type: http
+  seq: 22
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/payment/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "amount": 7500,
+        "payment_token": "WILL_BE_SET_BY_SCRIPT",
+        "meta": {
+          "email": "e2e-fields@leappay.com",
+          "job_id": 22
+        }
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const axios = require("axios");
+        const JUSTIFI_TOKEN = "Bearer " + bru.getEnvVar("JUSTIFI_TOKEN");
+        const ACCT = bru.getEnvVar("ACCOUNT_ID");
+        if (!JUSTIFI_TOKEN || JUSTIFI_TOKEN === "Bearer ") {
+          console.log("ERROR: Run 'Get JustiFi Token' first");
+          return;
+        }
+        try {
+          const resp = await axios({
+            method: "POST",
+            url: "https://api.justifi.ai/v1/payment_methods",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": JUSTIFI_TOKEN,
+              "Idempotency-Key": "e2e-fields-" + Date.now(),
+              "Sub-Account": ACCT
+            },
+            data: {
+              payment_method: {
+                card: {
+                  name: "E2E Fields Test",
+                  number: "4242424242424242",
+                  verification: "123",
+                  month: "12",
+                  year: "2028",
+                  address_postal_code: "55555"
+                }
+              }
+            }
+          });
+          const token = resp.data?.data?.card?.token;
+          console.log("Card tokenized:", token);
+          req.setBody({
+            amount: 7500,
+            payment_token: token,
+            meta: { email: "e2e-fields@leappay.com", job_id: 22 }
+          });
+        } catch (e) {
+          console.log("Tokenization error:", e.response?.data || e.message);
+        }
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        const status = res.getStatus();
+        if (status === 200 && body.data) {
+          console.log("=== Payment Response Fields ===");
+          console.log("payment_id:", body.data.payment_id);
+          console.log("amount:", body.data.amount);
+          console.log("fee_amount:", body.data.fee_amount);
+          console.log("status:", body.data.status);
+          console.log("card_brand:", body.data.card_brand);
+          console.log("card_type:", body.data.card_type);
+          console.log("amount_refunded:", body.data.amount_refunded);
+          console.log("amount_refundable:", body.data.amount_refundable);
+          console.log("created_at:", body.data.created_at);
+          console.log("meta:", JSON.stringify(body.data.meta));
+        } else {
+          console.log("Payment error:", JSON.stringify(body));
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+        test("should have payment_id as string starting with py_", function() {
+          const pid = res.getBody().data.payment_id;
+          expect(pid).to.be.a('string');
+          expect(pid.startsWith('py_')).to.be.true;
+        });
+        test("should have amount equal to 7500", function() {
+          expect(res.getBody().data.amount).to.equal(7500);
+        });
+        test("should have fee_amount as number", function() {
+          expect(res.getBody().data.fee_amount).to.be.a('number');
+        });
+        test("should have status as string", function() {
+          expect(res.getBody().data.status).to.be.a('string');
+        });
+        test("should have card_brand", function() {
+          expect(res.getBody().data.card_brand).to.exist;
+        });
+        test("should have card_type", function() {
+          expect(res.getBody().data.card_type).to.exist;
+        });
+        test("should have amount_refunded", function() {
+          expect(res.getBody().data.amount_refunded).to.exist;
+        });
+        test("should have amount_refundable", function() {
+          expect(res.getBody().data.amount_refundable).to.exist;
+        });
+        test("should have created_at", function() {
+          expect(res.getBody().data.created_at).to.exist;
+        });
+        test("should have meta", function() {
+          expect(res.getBody().data.meta).to.be.an('object');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Comprehensive response field validation for POST /payment/:uuid.
+  Amount: $75.00 (7500 cents).
+  Validates all expected response fields: payment_id (py_ prefix), amount,
+  fee_amount, status, card_brand, card_type, amount_refunded,
+  amount_refundable, created_at, and meta.

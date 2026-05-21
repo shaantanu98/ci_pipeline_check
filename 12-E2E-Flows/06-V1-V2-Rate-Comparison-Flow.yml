@@ -1,0 +1,73 @@
+info:
+  name: 06 V1 V2 Rate Comparison Flow
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: "{{BASE_URL}}/leappay_company_rate/{{COMPANY_ID}}"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: x-card-repricing
+      value: "true"
+    - name: x-leappay-ach-cap
+      value: "true"
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const axios = require("axios");
+        const BASE = bru.getEnvVar("BASE_URL");
+        const AUTH = bru.getEnvVar("AUTHTOKEN");
+        const DS = bru.getEnvVar("DATASERVICE");
+        const APP_ID = bru.getEnvVar("APPLICATION_ID");
+        const COMPANY_ID = bru.getEnvVar("COMPANY_ID");
+        
+        console.log("Step 1: Fetching V1 rate (no repricing header)...");
+        try {
+        const v1Resp = await axios({
+          method: "GET",
+          url: BASE + "/leappay_company_rate/" + COMPANY_ID,
+          headers: {
+            "Authorization": AUTH,
+            "data-service": DS,
+            "application-id": APP_ID
+        }
+        });
+        console.log("V1 Rate:", JSON.stringify(v1Resp.data));
+        } catch (e) {
+        console.log("V1 rate error:", e.message);
+        }
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (res.getStatus() === 200) {
+        console.log("Step 2: V2 Rate (with repricing):", JSON.stringify(body));
+        console.log("Compare V1 vs V2 rate structures above");
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  E2E: Compare V1 vs V2 rate responses.
+  
+  Before-request: Fetches V1 rate (no repricing header)
+  Request: Fetches V2 rate (with repricing header)
+  After-response: Compares both rate structures

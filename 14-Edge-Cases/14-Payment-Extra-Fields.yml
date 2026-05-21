@@ -1,0 +1,79 @@
+info:
+  name: 14 Payment Extra Fields
+  type: http
+  seq: 14
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/payment/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "amount": 5000,
+        "payment_token": "WILL_BE_SET_BY_SCRIPT",
+        "meta": { "test": "extra_fields" },
+        "unexpected_field": "should_be_ignored",
+        "admin_override": true,
+        "fee_amount": 0
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const axios = require("axios");
+        const JUSTIFI_TOKEN = "Bearer " + bru.getEnvVar("JUSTIFI_TOKEN");
+        const ACCT = bru.getEnvVar("ACCOUNT_ID");
+        try {
+          const resp = await axios({
+            method: "POST",
+            url: "https://api.justifi.ai/v1/payment_methods",
+            headers: { "Content-Type": "application/json", "Authorization": JUSTIFI_TOKEN, "Idempotency-Key": "extra-fields-" + Date.now(), "Sub-Account": ACCT },
+            data: { payment_method: { card: { name: "Extra Test", number: "4242424242424242", verification: "123", month: "12", year: "2028", address_postal_code: "55555" } } }
+          });
+          req.setBody({ amount: 5000, payment_token: resp.data?.data?.card?.token, meta: { test: "extra_fields" }, unexpected_field: "ignored", admin_override: true, fee_amount: 0 });
+        } catch (e) { console.log("Error:", e.message); }
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (res.getStatus() === 200 && body.data) {
+          console.log("=== EXTRA FIELDS TEST ===");
+          console.log("Fee:", body.data.fee_amount, "(should NOT be 0 - server must calculate)");
+          console.log("Result: fee_amount override was", body.data.fee_amount === 0 ? "ACCEPTED - SECURITY ISSUE!" : "IGNORED - correct");
+        }
+    - type: tests
+      code: |-
+        test("should process or reject", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 400, 412]);
+        });
+        test("fee_amount should NOT be overridable by client", function() {
+          if (res.getStatus() === 200) {
+            expect(res.getBody().data.fee_amount).to.be.greaterThan(0);
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Payment with extra unexpected fields in the body.
+  API should ignore extra fields and process normally or reject.

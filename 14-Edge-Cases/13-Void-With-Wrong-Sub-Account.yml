@@ -1,0 +1,36 @@
+info:
+  name: 13 Void With Wrong Sub Account
+  type: http
+  seq: 13
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/void_payment/non-existent-uuid-fake/{{PAYMENT_ID}}"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should reject void with wrong sub-account", function() {
+          expect(res.getStatus()).to.be.oneOf([404, 412]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Void a payment using a mismatched sub-account UUID.
+  The payment belongs to SUB_UUID but we use a fake UUID.
+  Should return 404 - sub-account not found.

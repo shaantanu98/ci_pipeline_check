@@ -1,0 +1,60 @@
+info:
+  name: 09 Create Business With Meta
+  type: http
+  seq: 9
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/business"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "business_name": "WILL_BE_SET_BY_SCRIPT",
+        "meta": {
+          "source": "e2e"
+        }
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const name = "E2E Meta Biz " + Date.now();
+        console.log("Creating business with meta:", name);
+        req.setBody({
+          business_name: name,
+          meta: { source: "e2e" }
+        });
+    - type: tests
+      code: |-
+        test("should return 200 or 412", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 412]);
+        });
+        test("should have data if 200", function() {
+          if (res.getStatus() === 200) {
+            expect(res.getBody().data).to.be.an('object');
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Create a business with meta data.
+  Verifies that meta object is accepted.
+  Uses a unique name with Date.now() to avoid collisions.

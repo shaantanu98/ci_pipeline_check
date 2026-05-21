@@ -1,0 +1,60 @@
+info:
+  name: 01 Double Refund Same Payment
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/refund/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "type": "full",
+        "justifi_payment_id": "{{REFUND_PAYMENT_ID}}",
+        "reason": "Double refund attempt - should fail"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        console.log("=== DOUBLE REFUND ATTEMPT ===");
+        console.log("Status:", res.getStatus());
+        console.log("Response:", JSON.stringify(body));
+        console.log("Expected: Error (cannot refund already-refunded payment)");
+    - type: tests
+      code: |-
+        test("should NOT return 200 - payment already refunded", function() {
+          expect(res.getStatus()).to.not.equal(200);
+        });
+        test("should return 400 or 412 error", function() {
+          expect(res.getStatus()).to.be.oneOf([400, 412, 422]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Attempt to fully refund a payment that has already been fully refunded.
+  Should return an error - cannot refund more than amount_refundable.
+  Uses REFUND_PAYMENT_ID from lifecycle tests (already refunded).

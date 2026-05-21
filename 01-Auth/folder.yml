@@ -1,0 +1,7 @@
+info:
+  name: 01-Auth
+  seq: 1
+
+docs: |-
+  # Authentication Setup
+  Get JustiFi OAuth token required for card tokenization in payment tests.

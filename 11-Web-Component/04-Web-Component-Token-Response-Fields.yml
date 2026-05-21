@@ -1,0 +1,60 @@
+info:
+  name: 04 Web Component Token Response Fields
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/web_component_token"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "resources": ["{{ACCOUNT_ID}}"]
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        console.log("=== WEB COMPONENT TOKEN RESPONSE ===");
+        console.log("Status:", res.getStatus());
+        console.log("Body:", JSON.stringify(res.getBody()));
+    - type: tests
+      code: |-
+        test("should return 200 or 400 (depends on account setup)", function() {
+          // JustiFi may reject if account doesn't have web components enabled
+          expect(res.getStatus()).to.be.oneOf([200, 400]);
+        });
+        test("should have response body", function() {
+          expect(res.getBody()).to.be.an('object');
+        });
+        test("should have token data if 200", function() {
+          if (res.getStatus() === 200) {
+            const body = res.getBody();
+            const data = body.data || body;
+            const token = data.authToken || data.authentication_token || data.access_token;
+            expect(token).to.be.a('string');
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Validate web component token response fields.
+  Checks data object contains authentication_token or access_token as a non-empty string.

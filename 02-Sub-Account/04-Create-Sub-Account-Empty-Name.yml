@@ -1,0 +1,43 @@
+info:
+  name: 04 Create Sub Account Empty Name
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/sub_account"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "account_name": ""
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return error for empty name", function() {
+          expect(res.getStatus()).to.be.oneOf([400, 403, 412]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Validation test: account_name must be non-empty.
+  Should return 400 error when name is empty string.

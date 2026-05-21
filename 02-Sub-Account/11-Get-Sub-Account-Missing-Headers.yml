@@ -1,0 +1,32 @@
+info:
+  name: 11 Get Sub Account Missing Headers
+  type: http
+  seq: 11
+
+http:
+  method: GET
+  url: "{{BASE_URL}}/sub_account/{{SUB_UUID}}"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 403 for missing data-service header", function() {
+          // validateHeaders middleware rejects when data-service is missing
+          expect(res.getStatus()).to.be.oneOf([400, 403]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Test missing required headers.
+  Should return 400 when data-service header is missing.

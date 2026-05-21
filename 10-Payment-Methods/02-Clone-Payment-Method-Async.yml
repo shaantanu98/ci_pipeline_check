@@ -1,0 +1,56 @@
+info:
+  name: 02 Clone Payment Method Async
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/clone_payment_method"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "destination_account_id": "{{ACCOUNT_ID}}",
+      "async": true,
+      "payment_methods": [
+        {
+          "token": "{{PAYMENT_METHOD_TOKEN}}",
+          "id": "pm_e2e_clone_async_1"
+        }
+      ],
+      "total_methods": 1,
+      "request_id": "e2e-clone-async-001"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 404, 412]);
+        });
+        test("should have async true", function() {
+          if (res.getStatus() === 200) expect(res.getBody().async).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Clone payment methods asynchronously via SQS.
+  async: true - queues batch processing.
+  Returns cloneRequestId and batch counts.

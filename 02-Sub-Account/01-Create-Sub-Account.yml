@@ -1,0 +1,86 @@
+info:
+  name: 01 Create Sub Account
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/sub_account"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "account_name": "WILL_BE_SET_BY_SCRIPT"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const name = "e2e_" + Math.random().toString(36).substring(2, 10) + "_" + Date.now();
+        console.log("Creating sub-account:", name);
+        req.setBody({ account_name: name });
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        const status = res.getStatus();
+        console.log("Status:", status);
+        if (status === 200 && body.data) {
+          bru.setEnvVar("SUB_UUID", body.data.uuid);
+          bru.setEnvVar("ACCOUNT_ID", body.data.account_id || "");
+          bru.setEnvVar("COMPANY_ID", body.data.company_id || "");
+          console.log("Sub-account created:", body.data.uuid);
+          console.log("Account ID:", body.data.account_id);
+        } else if (status === 412) {
+          // Sub-account already exists - fetch it using company_id
+          console.log("Sub-account already exists, fetching existing...");
+          const axios = require("axios");
+          const companyId = bru.getEnvVar("COMPANY_ID") || bru.getEnvVar("V2_COMPANY_ID");
+          const resp = await axios({
+            method: "GET",
+            url: bru.getEnvVar("BASE_URL") + "/sub_account/" + companyId,
+            headers: {
+              "Authorization": bru.getEnvVar("AUTHTOKEN"),
+              "data-service": bru.getEnvVar("DATASERVICE"),
+              "application-id": bru.getEnvVar("APPLICATION_ID"),
+              "x-card-repricing": "true"
+            },
+            validateStatus: () => true
+          });
+          if (resp.status === 200 && resp.data.data) {
+            bru.setEnvVar("SUB_UUID", resp.data.data.uuid);
+            bru.setEnvVar("ACCOUNT_ID", resp.data.data.account_id || "");
+            bru.setEnvVar("COMPANY_ID", resp.data.data.company_id || "");
+            console.log("Existing sub-account:", resp.data.data.uuid);
+            console.log("Account ID:", resp.data.data.account_id);
+          }
+        } else {
+          console.log("ERROR:", JSON.stringify(body));
+        }
+    - type: tests
+      code: |-
+        test("should return 200 or 412 (already exists)", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 412]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Create a new sub-account or fetch existing one.
+  If company already has a sub-account (412), fetches the existing one.
+  Saves SUB_UUID, ACCOUNT_ID, COMPANY_ID for subsequent tests.

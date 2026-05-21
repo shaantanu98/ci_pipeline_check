@@ -1,0 +1,73 @@
+info:
+  name: 08 Create Payment For Partial Refund
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/payment/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "amount": 20000,
+        "payment_token": "WILL_BE_SET_BY_SCRIPT",
+        "meta": { "test": "partial_refund_target" }
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const axios = require("axios");
+        const JUSTIFI_TOKEN = "Bearer " + bru.getEnvVar("JUSTIFI_TOKEN");
+        const ACCT = bru.getEnvVar("ACCOUNT_ID");
+        try {
+          const resp = await axios({
+            method: "POST",
+            url: "https://api.justifi.ai/v1/payment_methods",
+            headers: { "Content-Type": "application/json", "Authorization": JUSTIFI_TOKEN, "Idempotency-Key": "partial-refund-" + Date.now(), "Sub-Account": ACCT },
+            data: { payment_method: { card: { name: "Partial Refund", number: "4242424242424242", verification: "123", month: "12", year: "2028", address_postal_code: "55555" } } }
+          });
+          req.setBody({ amount: 20000, payment_token: resp.data?.data?.card?.token, meta: { test: "partial_refund_target" } });
+        } catch (e) { console.log("Error:", e.message); }
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (res.getStatus() === 200 && body.data) {
+          bru.setEnvVar("PARTIAL_REFUND_PAYMENT_ID", body.data.payment_id);
+          console.log("Payment for partial refund:", body.data.payment_id, "| $200");
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+        test("amount should be 20000", function() {
+          expect(res.getBody().data.amount).to.equal(20000);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Create $200 payment for partial refund test.
+  Will refund $75 in the next step.

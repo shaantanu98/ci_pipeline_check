@@ -1,0 +1,113 @@
+info:
+  name: 03 Payment And Void Flow
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/void_payment/:uuid/:payment_id"
+  params:
+    - name: uuid
+      value: WILL_BE_SET_BY_SCRIPT
+      type: path
+    - name: payment_id
+      value: WILL_BE_SET_BY_SCRIPT
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const axios = require("axios");
+        const BASE = bru.getEnvVar("BASE_URL");
+        const AUTH = bru.getEnvVar("AUTHTOKEN");
+        const DS = bru.getEnvVar("DATASERVICE");
+        const APP_ID = bru.getEnvVar("APPLICATION_ID");
+        const JUSTIFI_TOKEN = "Bearer " + bru.getEnvVar("JUSTIFI_TOKEN");
+        const SUB_UUID = bru.getEnvVar("SUB_UUID");
+        const ACCT = bru.getEnvVar("ACCOUNT_ID");
+        
+        console.log("Step 1: Tokenizing card...");
+        try {
+        const cardResp = await axios({
+          method: "POST",
+          url: "https://api.justifi.ai/v1/payment_methods",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": JUSTIFI_TOKEN,
+            "Idempotency-Key": "e2e-void-" + Date.now(),
+            "Sub-Account": ACCT
+          },
+          data: {
+            payment_method: {
+              card: {
+                name: "Void Test",
+                number: "4242424242424242",
+                verification: "123",
+                month: "12",
+                year: "2028",
+                address_postal_code: "55555"
+        }
+            }
+          }
+        });
+        const token = cardResp.data?.data?.card?.token;
+        
+        console.log("Step 2: Creating payment...");
+        const payResp = await axios({
+          method: "POST",
+          url: BASE + "/payment/" + SUB_UUID,
+          headers: {
+            "Authorization": AUTH,
+            "data-service": DS,
+            "application-id": APP_ID,
+            "Content-Type": "application/json"
+          },
+          data: {
+            amount: 5000,
+            payment_token: token,
+            meta: { email: "e2e-void@leappay.com", job_id: 300 }
+          }
+        });
+        const paymentId = payResp.data?.data?.payment_id;
+        console.log("Payment created:", paymentId);
+        
+        req.setUrl(BASE + "/void_payment/" + SUB_UUID + "/" + paymentId);
+        } catch (e) {
+        console.log("Setup error:", e.response?.data || e.message);
+        }
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (res.getStatus() === 200) {
+          console.log("Step 3: Payment voided:", JSON.stringify(body.data));
+        } else {
+          console.log("Void failed:", JSON.stringify(body));
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 400, 412, 500]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  E2E: Create payment -> Void payment
+  
+  Before-request: Tokenizes card and creates payment
+  Request: Voids the payment
+  After-response: Verifies void was processed

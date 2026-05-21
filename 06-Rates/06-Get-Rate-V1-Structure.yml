@@ -1,0 +1,55 @@
+info:
+  name: 06 Get Rate V1 Structure
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: "{{BASE_URL}}/leappay_company_rate/{{COMPANY_ID}}"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+        test("should have leappayCompanyRate object", function() {
+          const body = res.getBody();
+          expect(body.leappayCompanyRate).to.be.an('object');
+        });
+        test("should have CARD_RATE as number", function() {
+          const rate = res.getBody().leappayCompanyRate;
+          expect(rate.CARD_RATE).to.be.a('number');
+        });
+        test("should have ACH_RATE as number", function() {
+          const rate = res.getBody().leappayCompanyRate;
+          expect(rate.ACH_RATE).to.be.a('number');
+        });
+        test("should have CARD_FIXED_PRICE as number", function() {
+          const rate = res.getBody().leappayCompanyRate;
+          expect(rate.CARD_FIXED_PRICE).to.be.a('number');
+        });
+        test("should have ACH_MAX_FEE as number", function() {
+          const rate = res.getBody().leappayCompanyRate;
+          expect(rate.ACH_MAX_FEE).to.be.a('number');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Get V1 rate structure WITHOUT x-card-repricing header.
+  Validates flat rate fields: CARD_RATE, ACH_RATE, CARD_FIXED_PRICE, ACH_MAX_FEE.

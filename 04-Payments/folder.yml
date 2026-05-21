@@ -1,0 +1,11 @@
+info:
+  name: 04-Payments
+  seq: 4
+
+docs: |-
+  # Payment Endpoints
+  - POST /payment/{uuid} - Create payment
+  - GET /payment/id/{payment_id} - Get payment
+  - GET /sub_account/{uuid}/payment_method/{token} - Get payment method
+  - POST /void_payment/{uuid}/{payment_id} - Void payment
+  - POST /sync-missing-payments - Sync missing payments

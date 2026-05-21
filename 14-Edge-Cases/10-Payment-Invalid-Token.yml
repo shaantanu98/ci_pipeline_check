@@ -1,0 +1,56 @@
+info:
+  name: 10 Payment Invalid Token
+  type: http
+  seq: 10
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/payment/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "amount": 10000,
+        "payment_token": "pm_expired_invalid_token_12345"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        console.log("=== INVALID TOKEN ===");
+        console.log("Status:", res.getStatus());
+        console.log("Expected: Error from payment processor");
+    - type: tests
+      code: |-
+        test("should reject invalid payment token", function() {
+          expect(res.getStatus()).to.not.equal(200);
+        });
+        test("should return error status", function() {
+          expect(res.getStatus()).to.be.oneOf([400, 412, 422, 500]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Payment with an invalid/expired payment token.
+  Should fail at the processor level.

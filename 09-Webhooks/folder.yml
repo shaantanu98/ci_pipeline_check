@@ -1,0 +1,8 @@
+info:
+  name: 09-Webhooks
+  seq: 9
+
+docs: |-
+  # Webhook Endpoints
+  - POST /webhook - Receive webhook (signature validated)
+  - POST /process_webhook_async - Process webhook async

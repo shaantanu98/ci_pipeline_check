@@ -1,0 +1,16 @@
+info:
+  name: 13-Payment-Lifecycle
+  seq: 13
+
+docs: |-
+  # Payment Lifecycle E2E Flows
+  Sequential tests that validate the complete payment lifecycle.
+  Each step verifies the effect of the previous step.
+  
+  ## Flows
+  1. Card Payment -> Verify -> Check Balance
+  2. ACH Payment -> Verify Fee Calculation
+  3. Payment -> Full Refund -> Verify Reversal
+  4. Payment -> Partial Refund -> Verify Partial Reversal
+  5. Payment -> Void -> Verify Void
+  6. AMEX Payment -> Verify Premium Fee (3.5%)

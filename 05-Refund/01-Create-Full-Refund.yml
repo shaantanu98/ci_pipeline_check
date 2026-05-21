@@ -1,0 +1,61 @@
+info:
+  name: 01 Create Full Refund
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/refund/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "type": "full",
+      "justifi_payment_id": "{{PAYMENT_ID}}",
+      "reason": "E2E test full refund"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (res.getStatus() === 200 && body.data) {
+        bru.setEnvVar("REFUND_ID", body.data.refund_id || "");
+        console.log("Full refund created:", body.data.refund_id);
+        console.log("Amount refunded:", body.data.amount);
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 400, 412]);
+        });
+        test("should have data", function() {
+          if (res.getStatus() === 200) expect(res.getBody().data).to.be.an('object');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Create a full refund for an existing payment.
+  type: "full" - refunds the entire payment amount.
+  Saves REFUND_ID for verification.

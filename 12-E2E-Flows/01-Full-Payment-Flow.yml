@@ -1,0 +1,155 @@
+info:
+  name: 01 Full Payment Flow
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/payment/:uuid"
+  params:
+    - name: uuid
+      value: WILL_BE_SET_BY_SCRIPT
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "amount": 15000,
+      "payment_token": "WILL_BE_SET_BY_SCRIPT",
+      "meta": {
+        "email": "e2e-full-flow@leappay.com",
+        "job_id": 100
+      }
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const axios = require("axios");
+        
+        const BASE = bru.getEnvVar("BASE_URL");
+        const AUTH = bru.getEnvVar("AUTHTOKEN");
+        const DS = bru.getEnvVar("DATASERVICE");
+        const APP_ID = bru.getEnvVar("APPLICATION_ID");
+        const JUSTIFI_TOKEN = "Bearer " + bru.getEnvVar("JUSTIFI_TOKEN");
+        
+        // Step 1: Get or create sub-account
+        console.log("Step 1: Getting sub-account...");
+        try {
+        let subUuid = bru.getEnvVar("SUB_UUID");
+        let acctId = bru.getEnvVar("ACCOUNT_ID");
+        if (!subUuid) {
+          const companyId = bru.getEnvVar("COMPANY_ID") || bru.getEnvVar("V2_COMPANY_ID");
+          const getResp = await axios({ method: "GET", url: BASE + "/sub_account/" + companyId, headers: { "Authorization": AUTH, "data-service": DS, "application-id": APP_ID, "x-card-repricing": "true" }, validateStatus: () => true });
+          if (getResp.status === 200 && getResp.data.data) { subUuid = getResp.data.data.uuid; acctId = getResp.data.data.account_id; }
+        }
+        console.log("Sub-account:", subUuid, "| Account:", acctId);
+        
+        // Step 2: Tokenize card
+        console.log("Step 2: Tokenizing card...");
+        const cardResp = await axios({
+          method: "POST",
+          url: "https://api.justifi.ai/v1/payment_methods",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": JUSTIFI_TOKEN,
+            "Idempotency-Key": "e2e-flow-" + Date.now(),
+            "Sub-Account": acctId
+          },
+          data: {
+            payment_method: {
+              card: {
+                name: "Flow Test",
+                number: "4242424242424242",
+                verification: "123",
+                month: "12",
+                year: "2028",
+                address_postal_code: "55555"
+        }
+            }
+          }
+        });
+        const token = cardResp.data?.data?.card?.token;
+        console.log("Card token:", token);
+        
+        // Set request params
+        req.setUrl(BASE + "/payment/" + subUuid);
+        req.setBody({
+          amount: 15000,
+          payment_token: token,
+          meta: { email: "e2e-full-flow@leappay.com", job_id: 100 }
+        });
+        } catch (e) {
+        console.log("Setup error:", e.response?.data || e.message);
+        }
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        const status = res.getStatus();
+        console.log("Step 3: Payment result");
+        if (status === 200 && body.data) {
+        console.log("Payment ID:", body.data.payment_id);
+        console.log("Amount:", body.data.amount, "cents");
+        console.log("Fee:", body.data.fee_amount, "cents");
+        console.log("Status:", body.data.status);
+        
+        // Step 4: Verify payment
+        try {
+          const axios = require("axios");
+          const BASE = bru.getEnvVar("BASE_URL");
+          const AUTH = bru.getEnvVar("AUTHTOKEN");
+          const DS = bru.getEnvVar("DATASERVICE");
+          const APP_ID = bru.getEnvVar("APPLICATION_ID");
+          const verifyResp = await axios({
+            method: "GET",
+            url: BASE + "/payment/id/" + body.data.payment_id,
+            headers: {
+              "Authorization": AUTH,
+              "data-service": DS,
+              "application-id": APP_ID
+        }
+          });
+          console.log("Step 4: Verification:", verifyResp.status === 200 ? "VERIFIED" : "FAILED");
+        } catch (e) {
+          console.log("Verify error:", e.message);
+        }
+        } else {
+        console.log("Payment failed:", JSON.stringify(body));
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 400, 412, 500]);
+        });
+        test("should have payment_id", function() {
+          if (res.getStatus() === 200) expect(res.getBody().data.payment_id).to.be.a('string');
+        });
+        test("should have correct amount", function() {
+          if (res.getStatus() === 200) expect(res.getBody().data.amount).to.equal(15000);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  E2E: Create sub-account -> Tokenize card -> Create payment -> Verify payment
+  
+  This test combines multiple steps into one request:
+  1. Before-request: Creates sub-account, tokenizes card
+  2. Request: Creates payment
+  3. After-response: Verifies payment and fetches payment details

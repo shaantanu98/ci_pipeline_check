@@ -1,0 +1,95 @@
+info:
+  name: 05 Business And Sub Account Flow
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: "{{BASE_URL}}/business/:uuid"
+  params:
+    - name: uuid
+      value: WILL_BE_SET_BY_SCRIPT
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const axios = require("axios");
+        
+        const BASE = bru.getEnvVar("BASE_URL");
+        const AUTH = bru.getEnvVar("AUTHTOKEN");
+        const DS = bru.getEnvVar("DATASERVICE");
+        const APP_ID = bru.getEnvVar("APPLICATION_ID");
+        const headers = {
+          "Authorization": AUTH,
+          "data-service": DS,
+          "application-id": APP_ID,
+          "Content-Type": "application/json"
+        };
+        
+        console.log("Step 1: Creating business...");
+        try {
+          const bizName = "E2E_" + Math.random().toString(36).substring(2, 10) + "_" + Date.now();
+          const bizResp = await axios({
+            method: "POST",
+            url: BASE + "/business",
+            headers,
+            data: { business_name: bizName }
+          });
+          const bizUuid = bizResp.data?.data?.uuid;
+          console.log("Business:", bizUuid);
+        
+          console.log("Step 2: Creating sub-account...");
+          const subName = "e2e_biz_" + Math.random().toString(36).substring(2, 10) + "_" + Date.now();
+          const subResp = await axios({
+            method: "POST",
+            url: BASE + "/sub_account",
+            headers,
+            data: {
+              account_name: subName,
+              business_id: bizResp.data?.data?.business_id
+        }
+        });
+        console.log("Sub-account:", subResp.data?.data?.uuid);
+        
+        req.setUrl(BASE + "/business/" + bizUuid);
+        } catch (e) {
+        console.log("Setup error:", e.response?.data || e.message);
+        }
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (res.getStatus() === 200) {
+        console.log("Step 3: Business verified:", JSON.stringify(body.data));
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+        test("should have business data", function() {
+          expect(res.getBody().data).to.be.an('object');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  E2E: Create business -> Create sub-account -> Link to office -> Get business
+  
+  Before-request: Creates business and sub-account
+  Request: Gets business details
+  After-response: Verifies full setup

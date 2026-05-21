@@ -1,0 +1,69 @@
+info:
+  name: 06 Clone Sync Response Fields
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/clone_payment_method"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "destination_account_id": "{{ACCOUNT_ID}}",
+      "payment_methods": [
+        {
+          "token": "{{PAYMENT_METHOD_TOKEN}}",
+          "id": "pm_test_clone_fields"
+        }
+      ],
+      "request_id": "clone-fields-TEST_TIMESTAMP"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const uniqueId = "clone-fields-" + Date.now();
+        req.setBody(JSON.stringify({
+          destination_account_id: bru.getEnvVar("ACCOUNT_ID"),
+          payment_methods: [
+            {
+              token: bru.getEnvVar("PAYMENT_METHOD_TOKEN"),
+              id: "pm_test_clone_fields"
+            }
+          ],
+          request_id: uniqueId
+        }));
+    - type: tests
+      code: |-
+        test("should return 200 or 404 or 412", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 404, 412]);
+        });
+        test("should have data as array if 200", function() {
+          if (res.getStatus() === 200) {
+            expect(res.getBody().data).to.be.an('array');
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Clone payment method synchronously and validate response fields.
+  Generates unique request_id with Date.now() before request.
+  Checks data is returned as an array on success.

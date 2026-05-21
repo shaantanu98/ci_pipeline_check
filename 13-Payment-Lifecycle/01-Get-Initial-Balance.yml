@@ -1,0 +1,51 @@
+info:
+  name: 01 Get Initial Balance
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{BASE_URL}}/payout_balance_summary/{{SUB_UUID}}"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        const status = res.getStatus();
+        if (status === 200 && body.data) {
+          const balance = body.data.balance_amount || 0;
+          bru.setEnvVar("INITIAL_BALANCE", String(balance));
+          console.log("Initial balance:", balance, "cents");
+        } else {
+          console.log("Balance response:", status, JSON.stringify(body));
+          bru.setEnvVar("INITIAL_BALANCE", "0");
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+        test("should have balance_amount", function() {
+          const body = res.getBody();
+          expect(body.data).to.have.property('balance_amount');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Capture the initial balance before any payment operations.
+  Saves INITIAL_BALANCE for comparison after payments.

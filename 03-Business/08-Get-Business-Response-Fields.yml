@@ -1,0 +1,51 @@
+info:
+  name: 08 Get Business Response Fields
+  type: http
+  seq: 8
+
+http:
+  method: GET
+  url: "{{BASE_URL}}/business/{{COMPANY_ID}}"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+        test("should have uuid", function() {
+          expect(res.getBody().data.uuid).to.be.a('string');
+        });
+        test("should have business_name", function() {
+          expect(res.getBody().data.business_name).to.be.a('string');
+        });
+        test("should have company_id", function() {
+          expect(res.getBody().data.company_id).to.be.a('string');
+        });
+        test("should have web_component_token", function() {
+          expect(res.getBody().data.web_component_token).to.be.a('string');
+        });
+        test("should have created_at", function() {
+          expect(res.getBody().data.created_at).to.exist;
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Comprehensive response field validation for GET /business/:id.
+  Uses company_id (the endpoint accepts both uuid and company_id).
+  Verifies: uuid, business_name, company_id, web_component_token, created_at.

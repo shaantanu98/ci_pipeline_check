@@ -1,0 +1,41 @@
+name: E2E API Tests
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  e2e-tests:
+    name: Run E2E API Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Write staging environment file from secret
+        env:
+          STAGING_ENV: ${{ secrets.STAGING_ENV_YML }}
+        run: echo "$STAGING_ENV" > environments/staging.yml
+
+      - name: Run E2E tests
+        run: npx bru run --env staging
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: results.json
+          retention-days: 30

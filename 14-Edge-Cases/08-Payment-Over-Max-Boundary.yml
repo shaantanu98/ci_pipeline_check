@@ -1,0 +1,49 @@
+info:
+  name: 08 Payment Over Max Boundary
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/payment/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "amount": 100000000,
+        "payment_token": "pm_test_over_max"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should reject amount over max (100000000 > 99999999)", function() {
+          // PAYMENT_RANGE.MAX = 99999999 in global.ts — Zod validation returns 412
+          expect(res.getStatus()).to.equal(412);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Payment exceeding PAYMENT_RANGE.MAX: 100,000,000 cents ($1,000,000.00).
+  Zod validation rejects (max: 99,999,999 cents = $999,999.99).

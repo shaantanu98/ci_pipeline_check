@@ -1,0 +1,62 @@
+info:
+  name: 15 Get Final Balance
+  type: http
+  seq: 15
+
+http:
+  method: GET
+  url: "{{BASE_URL}}/payout_balance_summary/{{SUB_UUID}}"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (res.getStatus() === 200 && body.data) {
+          const finalBalance = body.data.balance_amount || 0;
+          const initialBalance = parseInt(bru.getEnvVar("INITIAL_BALANCE") || "0");
+          const diff = finalBalance - initialBalance;
+          console.log("========================================");
+          console.log("  PAYMENT LIFECYCLE SUMMARY");
+          console.log("========================================");
+          console.log("Initial Balance:", initialBalance, "cents ($" + (initialBalance/100).toFixed(2) + ")");
+          console.log("Final Balance:  ", finalBalance, "cents ($" + (finalBalance/100).toFixed(2) + ")");
+          console.log("Net Change:     ", diff, "cents ($" + (diff/100).toFixed(2) + ")");
+          console.log("========================================");
+          console.log("Operations performed:");
+          console.log("  1. Card $100 payment (net ~$96.80)");
+          console.log("  2. Card $50 payment + full refund (net ~$0)");
+          console.log("  3. Card $200 payment + $75 partial refund (net ~$125 - fees)");
+          console.log("  4. Card $30 payment + void (net ~$0)");
+          console.log("  5. ACH $100 payment (net ~$99.20)");
+          console.log("========================================");
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+        test("balance should be greater than or equal to initial", function() {
+          const finalBalance = res.getBody().data.balance_amount || 0;
+          const initialBalance = parseInt(bru.getEnvVar("INITIAL_BALANCE") || "0");
+          expect(finalBalance).to.be.at.least(initialBalance);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Get final balance after all payment operations.
+  Compares with initial balance to validate the net effect.

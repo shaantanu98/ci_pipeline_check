@@ -1,0 +1,59 @@
+info:
+  name: 01 Clone Payment Method Sync
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/clone_payment_method"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "destination_account_id": "{{ACCOUNT_ID}}",
+      "async": false,
+      "payment_methods": [
+        {
+          "token": "{{PAYMENT_METHOD_TOKEN}}",
+          "id": "pm_e2e_clone_test"
+        }
+      ],
+      "request_id": "e2e-clone-sync-001"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (res.getStatus() === 200) {
+        console.log("Clone result:", JSON.stringify(body));
+        bru.setEnvVar("CLONE_REQUEST_ID", "e2e-clone-sync-001");
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 404, 412]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Clone payment methods synchronously.
+  async: false - returns cloned methods immediately.
+  Requires: destination_account_id, payment_methods array, request_id.

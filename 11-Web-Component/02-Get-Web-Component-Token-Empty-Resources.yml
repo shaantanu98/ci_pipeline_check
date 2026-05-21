@@ -1,0 +1,43 @@
+info:
+  name: 02 Get Web Component Token Empty Resources
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/web_component_token"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "resources": []
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return error for empty resources", function() {
+          expect(res.getStatus()).to.be.oneOf([400, 403, 412]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Validation: resources must be non-empty array.
+  Should return 400 for empty resources.

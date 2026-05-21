@@ -1,0 +1,8 @@
+info:
+  name: 06-Rates
+  seq: 6
+
+docs: |-
+  # Rate Endpoints
+  - GET /leappay_company_rate/{company_id} - Get company rate
+  Supports x-card-repricing and x-leappay-ach-cap headers.

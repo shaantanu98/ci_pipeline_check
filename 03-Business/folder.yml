@@ -1,0 +1,8 @@
+info:
+  name: 03-Business
+  seq: 3
+
+docs: |-
+  # Business Endpoints
+  - POST /business - Create business
+  - GET /business/{uuid} - Get business

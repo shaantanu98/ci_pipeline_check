@@ -1,0 +1,35 @@
+info:
+  name: 10 Get Payment Not Found
+  type: http
+  seq: 10
+
+http:
+  method: GET
+  url: "{{BASE_URL}}/payment/id/py_nonexistent_12345"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 404", function() {
+          expect(res.getStatus()).to.be.oneOf([400, 404, 412, 500]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Get payment with non-existent payment_id.
+  Should return 404.

@@ -1,0 +1,51 @@
+info:
+  name: 10 Sub Account Webhook Dev Only
+  type: http
+  seq: 10
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/sub_account_webhook/{{SUB_UUID}}"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "status": "enabled"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const status = res.getStatus();
+        if (status === 200) {
+          console.log("Dev webhook processed - sub-account status updated");
+        } else if (status === 403) {
+          console.log("Expected in non-dev: 403 Forbidden");
+        }
+    - type: tests
+      code: |-
+        test("should return 200 in dev or 403 in non-dev", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 403]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Dev-only endpoint to manually trigger sub-account status update.
+  Returns 403 in non-development environments.

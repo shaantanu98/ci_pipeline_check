@@ -1,0 +1,8 @@
+info:
+  name: 08-Office-Sub-Accounts
+  seq: 8
+
+docs: |-
+  # Office Sub-Account Endpoints
+  - POST /link_sub_account_office - Link sub-account to office
+  - POST /unlink_sub_account_office - Unlink sub-account from office

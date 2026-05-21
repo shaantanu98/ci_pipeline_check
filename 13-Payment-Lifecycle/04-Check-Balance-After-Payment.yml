@@ -1,0 +1,52 @@
+info:
+  name: 04 Check Balance After Payment
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{BASE_URL}}/payout_balance_summary/{{SUB_UUID}}"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (res.getStatus() === 200 && body.data) {
+          const currentBalance = body.data.balance_amount || 0;
+          const initialBalance = parseInt(bru.getEnvVar("INITIAL_BALANCE") || "0");
+          const diff = currentBalance - initialBalance;
+          bru.setEnvVar("POST_PAYMENT_BALANCE", String(currentBalance));
+          console.log("=== BALANCE CHECK ===");
+          console.log("Initial balance:", initialBalance, "cents");
+          console.log("Current balance:", currentBalance, "cents");
+          console.log("Difference:", diff, "cents ($" + (diff / 100).toFixed(2) + ")");
+          console.log("(Should roughly match net payment amount)");
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+        test("balance should exist", function() {
+          expect(res.getBody().data).to.have.property('balance_amount');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Check balance after the $100 payment.
+  Balance should have increased by the net amount (amount - fee).

@@ -1,0 +1,56 @@
+info:
+  name: 08 Create Refund With Reason
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/refund/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "type": "full",
+        "justifi_payment_id": "{{PAYMENT_ID}}",
+        "reason": "Customer requested refund"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 200 or 400", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 400]);
+        });
+        test("should have data if 200", function() {
+          if (res.getStatus() === 200) {
+            expect(res.getBody().data).to.be.an('object');
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Create a full refund with a reason string.
+  Sends reason: "Customer requested refund" along with the refund request.
+  Response depends on whether the payment exists and is refundable.
+  Accepts 200 (success) or 400 (payment not refundable).

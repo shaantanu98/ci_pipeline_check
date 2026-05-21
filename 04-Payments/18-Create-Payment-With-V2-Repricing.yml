@@ -1,0 +1,102 @@
+info:
+  name: 18 Create Payment With V2 Repricing
+  type: http
+  seq: 18
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/payment/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+    - name: x-card-repricing
+      value: "true"
+  body:
+    type: json
+    data: |-
+      {
+      "amount": 10000,
+      "payment_token": "WILL_BE_SET_BY_SCRIPT",
+      "meta": {
+        "email": "e2e-v2@leappay.com",
+        "job_id": 18
+      }
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const axios = require("axios");
+        const JUSTIFI_TOKEN = "Bearer " + bru.getEnvVar("JUSTIFI_TOKEN");
+        const ACCT = bru.getEnvVar("ACCOUNT_ID");
+        try {
+        const resp = await axios({
+          method: "POST",
+          url: "https://api.justifi.ai/v1/payment_methods",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": JUSTIFI_TOKEN,
+            "Idempotency-Key": "e2e-v2-" + Date.now(),
+            "Sub-Account": ACCT
+          },
+          data: {
+            payment_method: {
+              card: {
+                name: "V2 Test",
+                number: "4242424242424242",
+                verification: "123",
+                month: "12",
+                year: "2028",
+                address_postal_code: "55555"
+        }
+            }
+          }
+        });
+        const token = resp.data?.data?.card?.token;
+        req.setBody({
+          amount: 10000,
+          payment_token: token,
+          meta: { email: "e2e-v2@leappay.com", job_id: 18 }
+        });
+        } catch (e) {
+        console.log("Error:", e.message);
+        }
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (res.getStatus() === 200 && body.data) {
+        console.log("V2 Payment fee:", body.data.fee_amount, "cents");
+        console.log("Expected: 299 cents (2.99%)");
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+        test("should have payment_id", function() {
+          expect(res.getBody().data.payment_id).to.be.a('string');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Create payment with x-card-repricing header enabled.
+  Tests V2 rate calculation (2.99% for credit cards).
+  Amount: $100 -> Expected fee: 299 cents (2.99%)

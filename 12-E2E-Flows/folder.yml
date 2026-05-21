@@ -1,0 +1,12 @@
+info:
+  name: 12-E2E-Flows
+  seq: 12
+
+docs: |-
+  # End-to-End Flows
+  Full lifecycle tests combining multiple endpoints.
+  - Full Payment Flow (tokenize -> pay -> verify)
+  - Payment + Refund Flow
+  - Payment + Void Flow
+  - Sub-Account Lifecycle (create -> use -> archive)
+  - Business + Sub-Account Setup Flow

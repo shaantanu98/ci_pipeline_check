@@ -1,0 +1,12 @@
+opencollection: 1.0.0
+
+info:
+  name: E2E-API-Tests
+bundled: false
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git
+    scripts:
+      sandbox: developer

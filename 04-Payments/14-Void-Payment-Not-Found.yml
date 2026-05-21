@@ -1,0 +1,35 @@
+info:
+  name: 14 Void Payment Not Found
+  type: http
+  seq: 14
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/void_payment/{{SUB_UUID}}/py_nonexistent_99999"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return error for non-existent payment", function() {
+          expect(res.getStatus()).to.be.oneOf([404, 412, 500]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Void a non-existent payment.
+  Should return 404.

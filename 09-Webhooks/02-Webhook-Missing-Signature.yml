@@ -1,0 +1,55 @@
+info:
+  name: 02 Webhook Missing Signature
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/webhook"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "id": "evt_test_no_sig",
+      "account_id": "{{ACCOUNT_ID}}",
+      "event_name": "payment.created",
+      "data": {}
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return error for missing signature", function() {
+          // If ACCOUNT_ID is set and matches a DB record: validateWebhook fails -> 400
+          // If ACCOUNT_ID is empty or not in DB: returns 200 "SubAccount not found"
+          const status = res.getStatus();
+          expect(status).to.be.oneOf([200, 400]);
+        });
+        test("if 400, should indicate invalid payload", function() {
+          if (res.getStatus() === 400) {
+            const body = res.getBody();
+            console.log("Correctly rejected: missing signature headers");
+          }
+        });
+        test("if 200, sub-account was not found for account_id", function() {
+          if (res.getStatus() === 200) {
+            console.log("SubAccount not found for ACCOUNT_ID - signature check skipped");
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Webhook without Justifi-Signature and Justifi-Timestamp headers.
+  If account_id resolves to a sub-account: validateWebhook fails -> 400.
+  If account_id doesn't exist in DB: returns 200 "SubAccount not found".

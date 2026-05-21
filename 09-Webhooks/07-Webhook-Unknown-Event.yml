@@ -1,0 +1,51 @@
+info:
+  name: 07 Webhook Unknown Event
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/webhook"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Justifi-Signature
+      value: test_sig
+    - name: Justifi-Timestamp
+      value: 1234567890
+  body:
+    type: json
+    data: |-
+      {
+      "id": "evt_test_unknown",
+      "account_id": "{{ACCOUNT_ID}}",
+      "event_name": "unknown.event.type",
+      "data": {
+        "id": "test_001"
+      }
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        console.log("Webhook unknown event status:", res.getStatus());
+        console.log("Response:", JSON.stringify(res.getBody()));
+    - type: tests
+      code: |-
+        test("should return 200 or 400", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 400]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Send webhook with unknown event type.
+  Returns 200 if account found but event unrecognized.
+  Returns 400 if signature validation fails (expected with fake sig).

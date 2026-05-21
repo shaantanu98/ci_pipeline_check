@@ -1,0 +1,54 @@
+info:
+  name: 01 Get Web Component Token
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/web_component_token"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "resources": ["{{ACCOUNT_ID}}"]
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (res.getStatus() === 200 && body.data) {
+        bru.setEnvVar("WEB_COMPONENT_TOKEN", body.data.authToken || "");
+        console.log("Web component token received");
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 400]);
+        });
+        test("should have data", function() {
+          if (res.getStatus() === 200) expect(res.getBody().data).to.be.an('object');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Get a web component token for embedding JustiFi components.
+  Requires: resources array (non-empty).
+  Returns authToken for frontend use.

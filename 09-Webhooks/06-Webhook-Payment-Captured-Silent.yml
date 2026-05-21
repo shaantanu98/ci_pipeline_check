@@ -1,0 +1,53 @@
+info:
+  name: 06 Webhook Payment Captured Silent
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/webhook"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Justifi-Signature
+      value: test_sig
+    - name: Justifi-Timestamp
+      value: 1234567890
+  body:
+    type: json
+    data: |-
+      {
+      "id": "evt_test_captured",
+      "account_id": "{{ACCOUNT_ID}}",
+      "event_name": "payment.captured",
+      "data": {
+        "id": "py_test_captured_001",
+        "amount": 10000,
+        "status": "captured"
+      }
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        console.log("Webhook payment.captured status:", res.getStatus());
+        console.log("Response:", JSON.stringify(res.getBody()));
+    - type: tests
+      code: |-
+        test("should return 200 or 400", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 400]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Send payment.captured webhook event.
+  Payment captured events are typically logged silently.
+  Returns 400 if signature validation fails (expected with fake sig).

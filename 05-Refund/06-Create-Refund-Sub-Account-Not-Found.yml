@@ -1,0 +1,48 @@
+info:
+  name: 06 Create Refund Sub Account Not Found
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/refund/:uuid"
+  params:
+    - name: uuid
+      value: non-existent-uuid-99999
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "type": "full",
+      "justifi_payment_id": "{{PAYMENT_ID}}"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return error for non-existent sub-account", function() {
+          expect(res.getStatus()).to.be.oneOf([404, 412]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Error: refund on non-existent sub-account.
+  Should return 404.

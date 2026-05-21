@@ -1,0 +1,55 @@
+info:
+  name: 02 Get JustiFi Token
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "https://api.justifi.ai/oauth/token"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "client_id": "{{JUSTIFI_CLIENT_ID}}",
+      "client_secret": "{{JUSTIFI_CLIENT_SECRET}}"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        const status = res.getStatus();
+        console.log("JustiFi token status:", status);
+        if (status === 200 && body && body.access_token) {
+          bru.setEnvVar("JUSTIFI_TOKEN", body.access_token);
+          console.log("JUSTIFI_TOKEN saved (expires in", body.expires_in, "seconds)");
+        } else {
+          console.log("ERROR: No access_token in response:", JSON.stringify(body));
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+        test("should have access_token", function() {
+          expect(res.getBody().access_token).to.be.a('string');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Get JustiFi OAuth access token.
+  Required before any card tokenization or payment tests.
+  Token is valid for 24 hours.
+  
+  Sets: JUSTIFI_TOKEN

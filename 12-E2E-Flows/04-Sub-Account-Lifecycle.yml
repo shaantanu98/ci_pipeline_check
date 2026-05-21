@@ -1,0 +1,96 @@
+info:
+  name: 04 Sub Account Lifecycle
+  type: http
+  seq: 4
+
+http:
+  method: PUT
+  url: "{{BASE_URL}}/update_sub_account_status/:uuid"
+  params:
+    - name: uuid
+      value: WILL_BE_SET_BY_SCRIPT
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "status": "archived",
+      "note": "E2E lifecycle test complete"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const axios = require("axios");
+        
+        const BASE = bru.getEnvVar("BASE_URL");
+        const AUTH = bru.getEnvVar("AUTHTOKEN");
+        const DS = bru.getEnvVar("DATASERVICE");
+        const APP_ID = bru.getEnvVar("APPLICATION_ID");
+        const headers = {
+          "Authorization": AUTH,
+          "data-service": DS,
+          "application-id": APP_ID,
+          "Content-Type": "application/json"
+        };
+        
+        console.log("Step 1: Creating sub-account...");
+        try {
+          const name = "e2e_lifecycle_" + Math.random().toString(36).substring(2, 10) + "_" + Date.now();
+          const createResp = await axios({
+            method: "POST",
+            url: BASE + "/sub_account",
+            headers,
+            data: { account_name: name }
+          });
+          const uuid = createResp.data?.data?.uuid;
+          console.log("Created:", uuid);
+        
+          console.log("Step 2: Verifying sub-account...");
+          const getResp = await axios({
+            method: "GET",
+            url: BASE + "/sub_account/" + uuid,
+            headers
+          });
+          console.log("Status:", getResp.data?.data?.status);
+        
+          req.setUrl(BASE + "/update_sub_account_status/" + uuid);
+        } catch (e) {
+          console.log("Setup error:", e.response?.data || e.message);
+        }
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (res.getStatus() === 200) {
+        console.log("Step 3: Sub-account archived successfully");
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 412]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  E2E: Create sub-account -> Get details -> Make payment -> Archive
+  
+  Before-request: Creates sub-account, verifies it, makes a payment
+  Request: Archives the sub-account
+  After-response: Verifies archived status

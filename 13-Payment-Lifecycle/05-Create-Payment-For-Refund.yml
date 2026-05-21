@@ -1,0 +1,86 @@
+info:
+  name: 05 Create Payment For Refund
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/payment/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "amount": 5000,
+        "payment_token": "WILL_BE_SET_BY_SCRIPT",
+        "meta": { "test": "refund_target" }
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const axios = require("axios");
+        const JUSTIFI_TOKEN = "Bearer " + bru.getEnvVar("JUSTIFI_TOKEN");
+        const ACCT = bru.getEnvVar("ACCOUNT_ID");
+        try {
+          const resp = await axios({
+            method: "POST",
+            url: "https://api.justifi.ai/v1/payment_methods",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": JUSTIFI_TOKEN,
+              "Idempotency-Key": "refund-target-" + Date.now(),
+              "Sub-Account": ACCT
+            },
+            data: { payment_method: { card: { name: "Refund Test", number: "4242424242424242", verification: "123", month: "12", year: "2028", address_postal_code: "55555" } } }
+          });
+          const token = resp.data?.data?.card?.token;
+          req.setBody({ amount: 5000, payment_token: token, meta: { test: "refund_target" } });
+        } catch (e) {
+          console.log("Error:", e.message);
+        }
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (res.getStatus() === 200 && body.data) {
+          bru.setEnvVar("REFUND_PAYMENT_ID", body.data.payment_id);
+          bru.setEnvVar("REFUND_PAYMENT_AMOUNT", String(body.data.amount));
+          bru.setEnvVar("REFUND_PAYMENT_FEE", String(body.data.fee_amount));
+          console.log("Payment for refund:", body.data.payment_id, "| $" + (body.data.amount/100).toFixed(2));
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+        test("should have payment_id", function() {
+          expect(res.getBody().data.payment_id).to.match(/^py_/);
+        });
+        test("amount should be 5000", function() {
+          expect(res.getBody().data.amount).to.equal(5000);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Create a new $50 payment specifically to test the refund flow.
+  Saves REFUND_PAYMENT_ID for subsequent refund test.

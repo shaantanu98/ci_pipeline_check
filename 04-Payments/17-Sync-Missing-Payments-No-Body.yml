@@ -1,0 +1,41 @@
+info:
+  name: 17 Sync Missing Payments No Body
+  type: http
+  seq: 17
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/sync-missing-payments"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {}
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return error for missing payment_ids", function() {
+          expect(res.getStatus()).to.be.oneOf([400, 412, 500]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Validation: request body is required.
+  Should return error for missing body.

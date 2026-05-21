@@ -1,0 +1,18 @@
+info:
+  name: 14-Edge-Cases
+  seq: 14
+
+docs: |-
+  # Edge Case & Error Scenario Tests
+  Tests for boundary conditions, error handling, and user-specific scenarios.
+  
+  Covers:
+  - Double refund attempts
+  - Refund exceeding available amount
+  - Void on already-voided payment
+  - Negative/decimal amounts
+  - Empty/null payment tokens
+  - Payment on archived sub-account
+  - Boundary amounts ($0.01, max amount)
+  - Missing required fields combinations
+  - Concurrent-like operations

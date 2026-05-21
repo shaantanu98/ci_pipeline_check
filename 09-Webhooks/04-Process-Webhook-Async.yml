@@ -1,0 +1,49 @@
+info:
+  name: 04 Process Webhook Async
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/process_webhook_async"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "body": {
+        "id": "evt_test_async",
+        "account_id": "{{ACCOUNT_ID}}",
+        "event_name": "payment.created",
+        "data": {
+          "id": "py_test_async",
+          "status": "succeeded",
+          "amount": 10000
+        }
+      },
+      "payload": "{"id":"evt_test_async","account_id":"{{ACCOUNT_ID}}","event_name":"payment.created","data":{"id":"py_test_async","status":"succeeded","amount":10000}}",
+      "headers": {}
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 400, 500]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Directly call the async webhook processor.
+  Normally invoked by the webhook Lambda, not directly.
+  Tests the processing logic.

@@ -1,0 +1,49 @@
+info:
+  name: 07 Create Partial Refund No Amount
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/refund/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "type": "partial",
+        "justifi_payment_id": "{{PAYMENT_ID}}"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should not return 200", function() {
+          expect(res.getStatus()).to.not.equal(200);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Attempt a partial refund without specifying an amount.
+  JustiFi rejects zero/null amount for partial refunds.
+  Expects a non-200 response (400 or 412).

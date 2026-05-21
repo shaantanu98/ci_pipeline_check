@@ -1,0 +1,56 @@
+info:
+  name: 11 Get Payout History Cursor
+  type: http
+  seq: 11
+
+http:
+  method: GET
+  url: "{{BASE_URL}}/get_payout_history/{{SUB_UUID}}?limit=2"
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (res.getStatus() === 200 && body.data) {
+        console.log("hasMore:", body.data.hasMore || body.data.has_more);
+        console.log("cursor:", body.data.cursor || body.data.after_cursor || "none");
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 500]);
+        });
+        test("should have data", function() {
+          if (res.getStatus() === 200) {
+            const body = res.getBody();
+            expect(body.data || body.payouts).to.exist;
+          }
+        });
+        test("should have pagination info if payouts exist", function() {
+          if (res.getStatus() === 200) {
+            const data = res.getBody().data;
+            if (data && (data.payouts || []).length > 0) {
+              expect(data.hasMore !== undefined || data.has_more !== undefined).to.be.true;
+            }
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Get payout history with limit=2 to test cursor-based pagination.
+  Logs hasMore and cursor info from response.

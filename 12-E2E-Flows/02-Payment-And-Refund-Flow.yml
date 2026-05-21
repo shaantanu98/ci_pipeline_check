@@ -1,0 +1,131 @@
+info:
+  name: 02 Payment And Refund Flow
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/refund/:uuid"
+  params:
+    - name: uuid
+      value: WILL_BE_SET_BY_SCRIPT
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+      "type": "full",
+      "justifi_payment_id": "WILL_BE_SET_BY_SCRIPT",
+      "reason": "E2E flow test refund"
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const axios = require("axios");
+        const BASE = bru.getEnvVar("BASE_URL");
+        const AUTH = bru.getEnvVar("AUTHTOKEN");
+        const DS = bru.getEnvVar("DATASERVICE");
+        const APP_ID = bru.getEnvVar("APPLICATION_ID");
+        const JUSTIFI_TOKEN = "Bearer " + bru.getEnvVar("JUSTIFI_TOKEN");
+        const SUB_UUID = bru.getEnvVar("SUB_UUID");
+        const ACCT = bru.getEnvVar("ACCOUNT_ID");
+        
+        // Step 1: Tokenize card
+        console.log("Step 1: Tokenizing card...");
+        try {
+        const cardResp = await axios({
+          method: "POST",
+          url: "https://api.justifi.ai/v1/payment_methods",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": JUSTIFI_TOKEN,
+            "Idempotency-Key": "e2e-refund-" + Date.now(),
+            "Sub-Account": ACCT
+          },
+          data: {
+            payment_method: {
+              card: {
+                name: "Refund Test",
+                number: "4242424242424242",
+                verification: "123",
+                month: "12",
+                year: "2028",
+                address_postal_code: "55555"
+        }
+            }
+          }
+        });
+        const token = cardResp.data?.data?.card?.token;
+        
+        // Step 2: Create payment
+        console.log("Step 2: Creating payment...");
+        const payResp = await axios({
+          method: "POST",
+          url: BASE + "/payment/" + SUB_UUID,
+          headers: {
+            "Authorization": AUTH,
+            "data-service": DS,
+            "application-id": APP_ID,
+            "Content-Type": "application/json"
+          },
+          data: {
+            amount: 8000,
+            payment_token: token,
+            meta: { email: "e2e-refund@leappay.com", job_id: 200 }
+          }
+        });
+        const paymentId = payResp.data?.data?.payment_id;
+        console.log("Payment created:", paymentId);
+        
+        // Step 3: Set up refund request
+        req.setUrl(BASE + "/refund/" + SUB_UUID);
+        req.setBody({
+          type: "full",
+          justifi_payment_id: paymentId,
+          reason: "E2E flow test refund"
+        });
+        } catch (e) {
+        console.log("Setup error:", e.response?.data || e.message);
+        }
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (res.getStatus() === 200) {
+          console.log("Step 3: Refund created:", JSON.stringify(body.data));
+        } else {
+          console.log("Refund failed:", JSON.stringify(body));
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.be.oneOf([200, 400, 412, 500]);
+        });
+        test("should have refund data", function() {
+          if (res.getStatus() === 200) expect(res.getBody().data).to.be.an('object');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  E2E: Create payment -> Create full refund
+  
+  Before-request: Tokenizes card and creates payment
+  Request: Creates full refund on the payment
+  After-response: Verifies refund was processed

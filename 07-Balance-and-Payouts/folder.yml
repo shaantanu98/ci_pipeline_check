@@ -1,0 +1,9 @@
+info:
+  name: 07-Balance-and-Payouts
+  seq: 7
+
+docs: |-
+  # Balance & Payout Endpoints
+  - GET /payout_balance_summary/{uuid} - Balance summary
+  - GET /get_payout_history/{uuid} - Payout history with pagination
+  - GET /get_payout_payments/{uuid} - Payments within a payout

@@ -1,0 +1,48 @@
+info:
+  name: 03 Webhook Missing Account ID
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/webhook"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Justifi-Signature
+      value: test_signature
+    - name: Justifi-Timestamp
+      value: 1234567890
+  body:
+    type: json
+    data: |-
+      {
+      "id": "evt_test_no_account",
+      "event_name": "payment.created",
+      "data": {}
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 400 for missing account_id", function() {
+          expect(res.getStatus()).to.equal(400);
+        });
+        test("should have error message about missing account_id", function() {
+          const body = res.getBody();
+          expect(body.error).to.include('account_id');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Webhook without account_id in body.
+  API returns 200 with "SubAccount not found" because the handler
+  does a DB lookup (not input validation) — missing account_id returns null.

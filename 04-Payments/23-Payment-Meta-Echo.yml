@@ -1,0 +1,103 @@
+info:
+  name: 23 Payment Meta Echo
+  type: http
+  seq: 23
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/payment/:uuid"
+  params:
+    - name: uuid
+      value: "{{SUB_UUID}}"
+      type: path
+  headers:
+    - name: Authorization
+      value: "{{AUTHTOKEN}}"
+    - name: data-service
+      value: "{{DATASERVICE}}"
+    - name: application-id
+      value: "{{APPLICATION_ID}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "amount": 2000,
+        "payment_token": "WILL_BE_SET_BY_SCRIPT",
+        "meta": {
+          "email": "test@test.com",
+          "job_id": 999,
+          "custom_field": "hello"
+        }
+      }
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const axios = require("axios");
+        const JUSTIFI_TOKEN = "Bearer " + bru.getEnvVar("JUSTIFI_TOKEN");
+        const ACCT = bru.getEnvVar("ACCOUNT_ID");
+        if (!JUSTIFI_TOKEN || JUSTIFI_TOKEN === "Bearer ") {
+          console.log("ERROR: Run 'Get JustiFi Token' first");
+          return;
+        }
+        try {
+          const resp = await axios({
+            method: "POST",
+            url: "https://api.justifi.ai/v1/payment_methods",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": JUSTIFI_TOKEN,
+              "Idempotency-Key": "e2e-meta-" + Date.now(),
+              "Sub-Account": ACCT
+            },
+            data: {
+              payment_method: {
+                card: {
+                  name: "E2E Meta Test",
+                  number: "4242424242424242",
+                  verification: "123",
+                  month: "12",
+                  year: "2028",
+                  address_postal_code: "55555"
+                }
+              }
+            }
+          });
+          const token = resp.data?.data?.card?.token;
+          console.log("Card tokenized:", token);
+          req.setBody({
+            amount: 2000,
+            payment_token: token,
+            meta: { email: "test@test.com", job_id: 999, custom_field: "hello" }
+          });
+        } catch (e) {
+          console.log("Tokenization error:", e.response?.data || e.message);
+        }
+    - type: tests
+      code: |-
+        test("should return 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+        test("should echo back meta.email", function() {
+          expect(res.getBody().data.meta.email).to.equal("test@test.com");
+        });
+        test("should echo back meta.job_id", function() {
+          expect(res.getBody().data.meta.job_id).to.equal(999);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Verify that payment meta data is echoed back in the response.
+  Amount: $20.00 (2000 cents).
+  Sends meta with email, job_id, and custom_field, then verifies
+  the response contains the same meta values.
