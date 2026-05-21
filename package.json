@@ -4,9 +4,9 @@
   "description": "LeapPay E2E API Tests (Bruno Collection)",
   "main": "index.js",
   "scripts": {
-    "test": "bru run --env staging --output results.json",
-    "test:dev": "bru run --env dev --output results.json",
-    "test:staging": "bru run --env staging --output results.json"
+    "test": "bru run --env staging --sandbox developer --output results.json",
+    "test:dev": "bru run --env dev --sandbox developer --output results.json",
+    "test:staging": "bru run --env staging --sandbox developer --output results.json"
   },
   "keywords": [],
   "author": "",
@@ -17,6 +17,6 @@
     "yaml": "^2.9.0"
   },
   "devDependencies": {
-    "@usebruno/cli": "^1.36.2"
+    "@usebruno/cli": "^3.4.0"
   }
 }

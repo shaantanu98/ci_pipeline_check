@@ -3,5 +3,8 @@ results.json
 
 # Environment files contain credentials - use GitHub Secrets in CI
 environments/staging.yml
+environments/staging.bru
 environments/dev.yml
+environments/dev.bru
 environments/local.yml
+environments/local.bru

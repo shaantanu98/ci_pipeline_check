@@ -30,7 +30,7 @@ jobs:
         run: echo "$STAGING_ENV" > environments/staging.yml
 
       - name: Run E2E tests
-        run: npx bru run --env staging
+        run: npx bru run --env staging --sandbox developer --output results.json
 
       - name: Upload test results
         if: always()

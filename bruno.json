@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "E2E-API-Tests",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"]
+}
