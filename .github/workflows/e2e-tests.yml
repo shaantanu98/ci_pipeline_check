@@ -29,8 +29,19 @@ jobs:
           STAGING_ENV: ${{ secrets.STAGING_ENV_YML }}
         run: echo "$STAGING_ENV" > environments/staging.yml
 
-      - name: Run E2E tests
-        run: npx bru run --env staging --sandbox developer --output results.json
+      - name: Verify staging API connectivity
+        run: |
+          echo "Checking Parse Server..."
+          curl -sf --max-time 10 -o /dev/null "https://api.stage.leaptodigital.com" || { echo "::error::Parse Server (api.stage.leaptodigital.com) is unreachable from GitHub Actions. Whitelist GitHub runner IPs or use a self-hosted runner."; exit 1; }
+          echo "Checking LeapPay API..."
+          curl -sf --max-time 10 -o /dev/null "https://leappay-api-staging.jobprog.net" || { echo "::error::LeapPay API (leappay-api-staging.jobprog.net) is unreachable."; exit 1; }
+          echo "All endpoints reachable."
+
+      - name: Run Auth tests first (bail on failure)
+        run: npx bru run 01-Auth --env staging --sandbox developer --bail
+
+      - name: Run all E2E tests
+        run: npx bru run --env staging --sandbox developer --bail --output results.json
 
       - name: Upload test results
         if: always()
